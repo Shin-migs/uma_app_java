@@ -11,8 +11,8 @@ public class DBConnection {
     private static Map<String, String> loadEnv() {
         Map<String, String> env = new HashMap<>();
         File envFile = new File(".env");
-        System.out.println("📂 Looking for .env at: " + envFile.getAbsolutePath());
-        System.out.println("📂 File exists: " + envFile.exists());
+        System.out.println("Looking for .env at: " + envFile.getAbsolutePath());
+        System.out.println("File exists: " + envFile.exists());
 
         try (BufferedReader br = new BufferedReader(new FileReader(envFile))) {
             String line;
