@@ -1,56 +1,129 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.HashMap;
-import java.util.Map;
+import javafx.collections.*;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import java.sql.*;
 
-public class DBConnection {
+public class Controller {
 
-    private static Map<String, String> loadEnv() {
-        Map<String, String> env = new HashMap<>();
-        File envFile = new File(".env");
-        System.out.println("Looking for .env at: " + envFile.getAbsolutePath());
-        System.out.println("File exists: " + envFile.exists());
+    @FXML private TextField txtName;
+    @FXML private ChoiceBox<BaseStar> cbStar;
 
-        try (BufferedReader br = new BufferedReader(new FileReader(envFile))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty() || line.startsWith("#")) continue;
-                String[] parts = line.split("=", 2);
-                if (parts.length == 2) {
-                    env.put(parts[0].trim(), parts[1].trim());
+    @FXML private TableView<UmaMusume> table;
+    @FXML private TableColumn<UmaMusume, Integer> colId;
+    @FXML private TableColumn<UmaMusume, String> colName;
+    @FXML private TableColumn<UmaMusume, String> colStar;
+
+    private ObservableList<UmaMusume> list = FXCollections.observableArrayList();
+    private Connection conn;
+    private int selectedId = -1;
+
+    @FXML
+    public void initialize() {
+        conn = DBConnection.connect();
+
+        if (conn == null) {
+            System.out.println("[ERROR] Database connection is null. Check your .env file.");
+            return;
+        }
+
+        cbStar.getItems().setAll(BaseStar.values());
+
+        colId.setCellValueFactory(data -> data.getValue().idProperty().asObject());
+        colName.setCellValueFactory(data -> data.getValue().nameProperty());
+        colStar.setCellValueFactory(data -> data.getValue().baseStarProperty());
+
+        loadData();
+
+        table.setOnMouseClicked(e -> {
+            UmaMusume u = table.getSelectionModel().getSelectedItem();
+            if (u != null) {
+                selectedId = u.getId();
+                txtName.setText(u.getName());
+                for (BaseStar star : BaseStar.values()) {
+                    if (star.toString().equals(u.getBaseStar())) {
+                        cbStar.setValue(star);
+                    }
                 }
             }
-            System.out.println("✅ .env loaded successfully");
-        } catch (Exception e) {
-            System.out.println("❌ Could not load .env file: " + e.getMessage());
-        }
-        return env;
+        });
     }
 
-    public static Connection connect() {
-        Map<String, String> env = loadEnv();
-        String url  = env.getOrDefault("DB_URL",  "");
-        String user = env.getOrDefault("DB_USER", "");
-        String pass = env.getOrDefault("DB_PASS", "");
-
-        System.out.println("Connecting with URL: " + url);
-        System.out.println("User: " + user);
-
+    private void loadData() {
+        list.clear();
         try {
-            Class.forName("org.postgresql.Driver");
-            Connection conn = DriverManager.getConnection(url, user, pass);
-            System.out.println("✅ Connected to Supabase successfully!");
-            return conn;
-        } catch (ClassNotFoundException e) {
-            System.out.println("❌ JDBC Driver not found: " + e.getMessage());
-            return null;
+            String query = "SELECT * FROM umamusume ORDER BY id ASC";
+            ResultSet rs = conn.createStatement().executeQuery(query);
+            while (rs.next()) {
+                list.add(new UmaMusume(
+                    rs.getInt("id"),
+                    rs.getString("name"),
+                    rs.getString("base_star")
+                ));
+            }
+            table.setItems(list);
+            System.out.println("[OK] Loaded " + list.size() + " records.");
         } catch (Exception e) {
-            System.out.println("❌ Connection failed: " + e.getMessage());
-            return null;
+            System.out.println("[ERROR] Failed to load data: " + e.getMessage());
+            e.printStackTrace();
         }
+    }
+
+    @FXML
+    private void addUma() {
+        if (conn == null) return;
+        try {
+            String query = "INSERT INTO umamusume(name, base_star) VALUES (?, ?)";
+            PreparedStatement pst = conn.prepareStatement(query);
+            pst.setString(1, txtName.getText());
+            pst.setString(2, cbStar.getValue() != null ? cbStar.getValue().toString() : "");
+            pst.executeUpdate();
+            loadData();
+            clearFields();
+        } catch (Exception e) {
+            System.out.println("[ERROR] Add failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void updateUma() {
+        if (conn == null || selectedId == -1) return;
+        try {
+            String query = "UPDATE umamusume SET name=?, base_star=? WHERE id=?";
+            PreparedStatement pst = conn.prepareStatement(query);
+            pst.setString(1, txtName.getText());
+            pst.setString(2, cbStar.getValue() != null ? cbStar.getValue().toString() : "");
+            pst.setInt(3, selectedId);
+            pst.executeUpdate();
+            loadData();
+            clearFields();
+        } catch (Exception e) {
+            System.out.println("[ERROR] Update failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void deleteUma() {
+        if (conn == null || selectedId == -1) return;
+        try {
+            String query = "DELETE FROM umamusume WHERE id=?";
+            PreparedStatement pst = conn.prepareStatement(query);
+            pst.setInt(1, selectedId);
+            pst.executeUpdate();
+            loadData();
+            clearFields();
+        } catch (Exception e) {
+            System.out.println("[ERROR] Delete failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void clearFields() {
+        txtName.clear();
+        cbStar.setValue(null);
+        selectedId = -1;
+        table.getSelectionModel().clearSelection();
     }
 }
