@@ -22,7 +22,7 @@ public class Controller {
         conn = DBConnection.connect();
 
         if (conn == null) {
-            System.out.println("❌ Database connection is null. Check your .env file.");
+            System.out.println("[ERROR] Database connection is null. Check your .env file.");
             return;
         }
 
@@ -61,9 +61,9 @@ public class Controller {
                 ));
             }
             table.setItems(list);
-            System.out.println("✅ Loaded " + list.size() + " records.");
+            System.out.println("[OK] Loaded " + list.size() + " records.");
         } catch (Exception e) {
-            System.out.println("❌ Failed to load data: " + e.getMessage());
+            System.out.println("[ERROR] Failed to load data: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -80,7 +80,7 @@ public class Controller {
             loadData();
             clearFields();
         } catch (Exception e) {
-            System.out.println("❌ Add failed: " + e.getMessage());
+            System.out.println("[ERROR] Add failed: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -98,7 +98,7 @@ public class Controller {
             loadData();
             clearFields();
         } catch (Exception e) {
-            System.out.println("❌ Update failed: " + e.getMessage());
+            System.out.println("[ERROR] Update failed: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -114,7 +114,7 @@ public class Controller {
             loadData();
             clearFields();
         } catch (Exception e) {
-            System.out.println("❌ Delete failed: " + e.getMessage());
+            System.out.println("[ERROR] Delete failed: " + e.getMessage());
             e.printStackTrace();
         }
     }
