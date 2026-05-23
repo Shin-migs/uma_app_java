@@ -37,8 +37,8 @@ public class DBConnection {
         String user = env.getOrDefault("DB_USER", "");
         String pass = env.getOrDefault("DB_PASS", "");
 
-        System.out.println("🔗 Connecting with URL: " + url);
-        System.out.println("👤 User: " + user);
+        System.out.println("Connecting with URL: " + url);
+        System.out.println("User: " + user);
 
         try {
             Class.forName("org.postgresql.Driver");
